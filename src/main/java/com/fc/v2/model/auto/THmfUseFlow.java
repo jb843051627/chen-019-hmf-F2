@@ -12,6 +12,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -36,15 +37,82 @@ public class THmfUseFlow implements Serializable {
     @ApiModelProperty(value = "使用申请单号")
     private String bizNo;
 
-    /** 当前段次 0..3（立项/公示/施工/结算） */
+    /** 所属小区底册代号（户面余额按底册点） */
+    @TableField("site_no")
+    @ApiModelProperty(value = "所属小区底册代号")
+    private String siteNo;
+
+    /** 当前段次 0..3（立项/公示/施工/结算）；只作镜像，权威段次由系统按过口痕迹重放得出 */
     @TableField("stage")
     @ApiModelProperty(value = "当前段次 0..3（立项/公示/施工/结算）")
     private Integer stage;
 
-    /** 申领会落 0未起 1在办 2已作废 */
+    /** 申领会落 0未起 1在办 2已作废 3已办结（走到结算档列讫即办结一趟） */
     @TableField("status")
-    @ApiModelProperty(value = "申领会落 0未起 1在办 2已作废")
+    @ApiModelProperty(value = "申领会落 0未起 1在办 2已作废 3已办结")
     private Integer status;
+
+    /** 当前拨次（退回上一档时旧拨沉底，重走另起一拨） */
+    @TableField("cur_round")
+    @ApiModelProperty(value = "当前拨次（退回重走添新拨，旧拨沉底）")
+    private Integer curRound;
+
+    /** 门槛·工程地点（立项四样之一，缺则立项起不来） */
+    @TableField("project_place")
+    @ApiModelProperty(value = "门槛·工程地点（立项四样之一）")
+    private String projectPlace;
+
+    /** 门槛·预算金额（立项四样之一；结算列支照此数划走） */
+    @TableField("budget_amt")
+    @ApiModelProperty(value = "门槛·预算金额（立项四样之一；列支照此数划走）")
+    private BigDecimal budgetAmt;
+
+    /** 门槛·施工单位名称（立项四样之一） */
+    @TableField("builder_name")
+    @ApiModelProperty(value = "门槛·施工单位名称（立项四样之一）")
+    private String builderName;
+
+    /** 门槛·申请来源（立项四样之一：物业报的 / 业委会报的） */
+    @TableField("apply_source")
+    @ApiModelProperty(value = "门槛·申请来源（立项四样之一）")
+    private String applySource;
+
+    /** 门槛·当地定的公示天数（进公示档落定，照此刻起算） */
+    @TableField("public_days")
+    @ApiModelProperty(value = "门槛·公示天数")
+    private Integer publicDays;
+
+    /** 公示起算时刻（本拨进公示档落笔时刻，重走重新起算） */
+    @TableField("public_start")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "公示起算时刻")
+    private Date publicStart;
+
+    /** 门槛·合同要件（施工档挂齐，结算门才认） */
+    @TableField("contract_no")
+    @ApiModelProperty(value = "门槛·合同要件")
+    private String contractNo;
+
+    /** 门槛·验收记载（结算档要看） */
+    @TableField("accept_record")
+    @ApiModelProperty(value = "门槛·验收记载")
+    private String acceptRecord;
+
+    /** 门槛·监理那一名（结算档要到） */
+    @TableField("supervisor")
+    @ApiModelProperty(value = "门槛·监理签名")
+    private String supervisor;
+
+    /** 已列支金额（结算过门列讫落地，半途不动） */
+    @TableField("pay_amt")
+    @ApiModelProperty(value = "已列支金额（结算过门划走）")
+    private BigDecimal payAmt;
+
+    /** 列支落地时刻 */
+    @TableField("pay_time")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "列支落地时刻")
+    private Date payTime;
 
     /** 经办记事 */
     @TableField("content")
@@ -104,6 +172,14 @@ public class THmfUseFlow implements Serializable {
         this.bizNo = bizNo;
     }
 
+    public String getSiteNo() {
+        return siteNo;
+    }
+
+    public void setSiteNo(String siteNo) {
+        this.siteNo = siteNo;
+    }
+
     public Integer getStage() {
         return stage;
     }
@@ -118,6 +194,102 @@ public class THmfUseFlow implements Serializable {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getCurRound() {
+        return curRound;
+    }
+
+    public void setCurRound(Integer curRound) {
+        this.curRound = curRound;
+    }
+
+    public String getProjectPlace() {
+        return projectPlace;
+    }
+
+    public void setProjectPlace(String projectPlace) {
+        this.projectPlace = projectPlace;
+    }
+
+    public BigDecimal getBudgetAmt() {
+        return budgetAmt;
+    }
+
+    public void setBudgetAmt(BigDecimal budgetAmt) {
+        this.budgetAmt = budgetAmt;
+    }
+
+    public String getBuilderName() {
+        return builderName;
+    }
+
+    public void setBuilderName(String builderName) {
+        this.builderName = builderName;
+    }
+
+    public String getApplySource() {
+        return applySource;
+    }
+
+    public void setApplySource(String applySource) {
+        this.applySource = applySource;
+    }
+
+    public Integer getPublicDays() {
+        return publicDays;
+    }
+
+    public void setPublicDays(Integer publicDays) {
+        this.publicDays = publicDays;
+    }
+
+    public Date getPublicStart() {
+        return publicStart;
+    }
+
+    public void setPublicStart(Date publicStart) {
+        this.publicStart = publicStart;
+    }
+
+    public String getContractNo() {
+        return contractNo;
+    }
+
+    public void setContractNo(String contractNo) {
+        this.contractNo = contractNo;
+    }
+
+    public String getAcceptRecord() {
+        return acceptRecord;
+    }
+
+    public void setAcceptRecord(String acceptRecord) {
+        this.acceptRecord = acceptRecord;
+    }
+
+    public String getSupervisor() {
+        return supervisor;
+    }
+
+    public void setSupervisor(String supervisor) {
+        this.supervisor = supervisor;
+    }
+
+    public BigDecimal getPayAmt() {
+        return payAmt;
+    }
+
+    public void setPayAmt(BigDecimal payAmt) {
+        this.payAmt = payAmt;
+    }
+
+    public Date getPayTime() {
+        return payTime;
+    }
+
+    public void setPayTime(Date payTime) {
+        this.payTime = payTime;
     }
 
     public String getContent() {
