@@ -62,6 +62,11 @@ public class THmfAcctCard implements Serializable {
     @ApiModelProperty(value = "本户应缴额(元)")
     private BigDecimal fineAmt;
 
+    /** 户面余额(元，列支落地时从此划走) */
+    @TableField("balance")
+    @ApiModelProperty(value = "户面余额(元，列支落地时从此划走)")
+    private BigDecimal balance;
+
     /** 校验串（随版次序走） */
     @TableField("content")
     @ApiModelProperty(value = "校验串（随版次序走）")
@@ -163,6 +168,14 @@ public class THmfAcctCard implements Serializable {
 
     public void setFineAmt(BigDecimal fineAmt) {
         this.fineAmt = fineAmt;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 
     public String getContent() {

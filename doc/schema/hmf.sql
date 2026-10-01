@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS t_hmf_acct_card (
   site_no varchar(64) DEFAULT NULL COMMENT '所属底册代号',
   qty decimal(12,2) DEFAULT NULL COMMENT '本户建筑面积(平方米)',
   fine_amt decimal(12,2) DEFAULT NULL COMMENT '本户应缴额(元)',
+  balance decimal(14,2) DEFAULT NULL COMMENT '户面余额(元，列支落地时从此划走)',
   content varchar(255) DEFAULT NULL COMMENT '校验串（随版次序走）',
   grade_level int DEFAULT NULL COMMENT '面积折到的收费档次',
   status int DEFAULT NULL COMMENT '进展 0待核对 1已核对 2已冻住',
@@ -138,9 +139,21 @@ CREATE TABLE IF NOT EXISTS t_hmf_spend_line (
 
 CREATE TABLE IF NOT EXISTS t_hmf_use_flow (
   id bigint NOT NULL COMMENT '主键',
-  biz_no varchar(64) DEFAULT NULL COMMENT '使用申请单号',
-  stage int DEFAULT NULL COMMENT '当前段次 0..3（立项/公示/施工/结算）',
-  status int DEFAULT NULL COMMENT '申领会落 0未起 1在办 2已作废',
+  biz_no varchar(64) DEFAULT NULL COMMENT '使用申请单号（同一份申请只许一张，前一张在办或已中止都不许再起第二张）',
+  stage int DEFAULT NULL COMMENT '当前段次 0..3（立项/公示/施工/结算）；只由系统照痕迹回放数出，纸面/屏显不算',
+  walk_no int DEFAULT '1' COMMENT '当前趟次（每退回一次沉一档，重走另起一趟，旧趟痕迹留存）',
+  status int DEFAULT NULL COMMENT '申领会落 0未起 1在办 2已作废 3已办结',
+  work_site varchar(255) DEFAULT NULL COMMENT '工程地点（立项四样之一）',
+  budget_amt decimal(12,2) DEFAULT NULL COMMENT '预算金额（立项四样之一）',
+  builder_name varchar(128) DEFAULT NULL COMMENT '施工单位名称（立项四样之一）',
+  apply_source int DEFAULT NULL COMMENT '申请来源（立项四样之一）0物业报 1业委会报',
+  publish_days int DEFAULT NULL COMMENT '当地定的公示天数（进公示档时带死，重走另算）',
+  publish_start datetime DEFAULT NULL COMMENT '本趟进公示档的时刻（镜像，准数以痕迹行 act_time 回放）',
+  contract_ready int DEFAULT '0' COMMENT '合同要件挂齐没有 0未齐 1已齐（施工档的门槛，退回施工/公示时沉底重攒）',
+  accept_record varchar(255) DEFAULT NULL COMMENT '验收记载（结算档门槛之一）',
+  supervisor_name varchar(64) DEFAULT NULL COMMENT '监理那一名（结算档门槛之一）',
+  pay_amt decimal(12,2) DEFAULT NULL COMMENT '本次列支额（进结算档时一次从户面余额划走）',
+  acct_id bigint DEFAULT NULL COMMENT '列支所走的分户账户面',
   content varchar(255) DEFAULT NULL COMMENT '经办记事',
   last_action varchar(64) DEFAULT NULL COMMENT '最近一次过口动作',
   del_flag int DEFAULT '0' COMMENT '删除标记 0正常 1删除',
@@ -149,8 +162,32 @@ CREATE TABLE IF NOT EXISTS t_hmf_use_flow (
   update_by varchar(64) DEFAULT NULL COMMENT '更新者',
   update_time datetime DEFAULT NULL COMMENT '更新时间',
   remark varchar(500) DEFAULT NULL COMMENT '备注',
+  KEY idx_biz_no (biz_no),
+  KEY idx_acct (acct_id),
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='维修资金使用申请单';
+
+-- 过档痕迹流水：过一道口一行，只添不删不抹；样式照 t_hmf_budget_sign，不另立新张。
+-- 退回重走以 walk_no 另起一趟，旧趟原样留存。倒序复查就捋这一张：多记、缺档、事后补入任一现形即没走通。
+CREATE TABLE IF NOT EXISTS t_hmf_use_track (
+  id bigint NOT NULL COMMENT '主键',
+  flow_id bigint NOT NULL COMMENT '所属使用申请单',
+  stage_no int DEFAULT NULL COMMENT '本笔落在哪一档 0立项 1公示 2施工 3结算（退回味从该档收回）',
+  walk_no int DEFAULT NULL COMMENT '第几趟（退回重走添新趟，旧趟保留）',
+  action int DEFAULT '0' COMMENT '本笔动作 0往前 1往后 2作废',
+  src int DEFAULT '0' COMMENT '来路 0柜员手点 1系统按公示天数推（两条来路并到一处）',
+  operator varchar(64) DEFAULT NULL COMMENT '实际操作人/来路，逐笔实记（时钟来路记系统）',
+  act_time datetime DEFAULT NULL COMMENT '过口时刻（公示天数照本趟进公示行回放）',
+  del_flag int DEFAULT '0' COMMENT '删除标记 0正常 1删除',
+  create_by varchar(64) DEFAULT NULL COMMENT '创建者',
+  create_time datetime DEFAULT NULL COMMENT '创建时间',
+  update_by varchar(64) DEFAULT NULL COMMENT '更新者',
+  update_time datetime DEFAULT NULL COMMENT '更新时间',
+  remark varchar(500) DEFAULT NULL COMMENT '备注（退回事由等）',
+  KEY idx_flow (flow_id, walk_no, stage_no),
+  UNIQUE KEY uk_flow_walk_stage_act (flow_id, walk_no, stage_no, action),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='使用申请单过档痕迹流水';
 
 -- 初始档案数据（首条为启用态、第二条为停用态）
 -- t_hmf_arch 两条种子底册：id=0 在册、id=1 已迁出（用于挂接与拦截的联动核对）。
